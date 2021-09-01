@@ -1,0 +1,529 @@
+
+<html>
+    
+    <header class="w3-top">
+
+<div class="w3-theme-l2 w3-bar w3-large w3-center" style="padding:3px;"><span style="vertical-align:text-top" class="w3-small" id="datetoday"><script>let today=Date();document.getElementById("datetoday").innerHTML="&nbsp;Today: "+today.replace(/\(.*\)/, '');</script></span>
+    <body>
+<main>
+
+
+<form method="post">
+<table style="overflow:hidden;" class="w3-card-2 eai-center w3-centered w3-round-large" cellspacing="0" cellpadding="8">
+<tr style="color:#000;background-color:#ee9600;">
+<td colspan="2"><strong> METAR &amp; TAF</strong></td>
+</tr>
+<tr>
+<td>ICAO Identifier&nbsp;
+<input type="text" class="eai-datafield" name="icaoID" id="icaoid" value="YPEA" maxlength="4" size="8" title="Enter 4 letter ICAO Station Identification" autofocus autocomplete="off" /><br />
+</td>
+</tr>
+<tr>
+<td>
+<input type="radio" name="metartaf" id="metartaf_raw" checked /> Raw Text&nbsp;
+<input type="radio" name="metartaf" /> Translated
+</td>
+</tr>
+<tr>
+<td>
+<input class="w3-button w3-ripple w3-round-large" type="button" value="View METAR/TAF" id="btnMT" onclick="readmetartafform(this.form);" />&nbsp;
+<input class="w3-button w3-ripple w3-round-large" type="reset" value="Clear" onclick="clearValues('METAR/TAF Cleared.')" />
+</td>
+</tr>
+</table>
+</form>
+<br />
+<p class="w3-panel w3-round-xlarge eai-center w3-left-align" style="border:2px solid red; max-width:600px;font-family:consolas,sans-serif;font-size:0.9em;background-color:#f1f1f1;">
+<span id="station-output">An Internet connection is required for this tool.</span>
+<span id="metar-output"></span>
+<span id="taf-output"></span>
+<span id="time-output"></span>
+</p>
+<p>--------------------------------------------------------</p>
+<span id = "notifications"></span>
+<script>
+'use strict';
+async function fetchStationList(e, t) {
+	try {
+		const a = await fetch(avwxURL + 'station/near/' + e + ',' + t + '?n=10&airport=true&reporting=true&format=json', optFetch);
+		return a.ok || (notifyBar.innerHTML = `StationList AVWX: HTTP Status ${a.status}`), await a.json()
+	} catch (a) {
+		notifyBar.innerHTML = `Error with ${e}, ${t} request to AVWX.`
+	}
+}
+async function fetchStationData(e, t) {
+	try {
+		const a = await fetch(avwxURL + e + '/' + t + '?options=translate,summary&format=json', optFetch);
+		return a.ok || (notifyBar.innerHTML = `StationData AVWX: HTTP Status ${a.status}.`), await a.json()
+	} catch (a) {
+		notifyBar.innerHTML = `Notice: No ${e.toUpperCase()} reported for ${t}.`
+	}
+}
+async function saveICAOid(e) {
+	const t = await fetch(`/rest/api.php?icao=${e}`),
+		a = await t.text();
+	localStorage.setItem('API_Result', a), localStorage.setItem('ICAO_ID', e)
+}
+
+function boldElement(e) {
+	const t = e.split(' ');
+	return t.forEach(function(e, a) {
+		-1 !== e.search('KT') && (t[a] = `<strong>${e}</strong>`)
+	}), t.join(' ')
+}
+
+function renderStationInfo(e) {
+	let t = '<strong>Station Info</strong>: ';
+	localStorage.setItem('ELEV_FT', e.elevation_ft), localStorage.setItem('LAT', e.latitude), localStorage.setItem('LON', e.longitude);
+	for (const a in e) 'error' === a ? t += 'Station Information Not Available.' : 'meta' !== a && 'priority' !== a && 'runways' !== a && 'reporting' !== a && 'type' !== a && 'website' !== a && 'wiki' !== a && null !== e[a] && (t += e[a] + ' ');
+	null !== stationOutput && (stationOutput.innerHTML = t += '<br />')
+}
+
+function renderMETAR(e) {
+	//timeOutput.innerHTML = '<strong>Date/Timestamp</strong>: ' + e.meta.timestamp.replace(/T/, ', ').replace(/\.[0-9]+/, '') + '<br />';
+	let t = !1;
+	(e.wind_speed.value > 19 || e.wind_gust || e.wind_shear) && (t = !0);
+	let a = '<strong>METAR</strong>(' + e.time.repr.substr(0, 2) + '): ' + ' ';
+	e.meta.warning && (a += ' <span style="color:red;font-weight:bold;">(expired)</span><br />'), document.getElementById('metartaf_raw').checked ? (a += t ? boldElement(e.raw) : e.raw, a += ' PA' + e.pressure_altitude + ' DA' + e.density_altitude + ' RH' + floatFix(100 * e.relative_humidity, 0)) : a += e.time.repr + ': ' + e.summary, localStorage.setItem('QNH_HPA', e.altimeter.value), 'INHG' === e.units.altimeter.toUpperCase() && localStorage.setItem('QNH_HPA', Math.round(convert2HPA(e.altimeter.value))), localStorage.setItem('OAT_C', e.temperature.value), localStorage.setItem('DEWP_C', e.dewpoint.value), localStorage.setItem('WIND_DIR', e.wind_direction.value), localStorage.setItem('WIND_SPD', e.wind_speed.value), localStorage.setItem('REP_PA', e.pressure_altitude), localStorage.setItem('REP_DA', e.density_altitude), localStorage.setItem('REP_RH', e.relative_humidity), localStorage.setItem('FLT_RULES', e.flight_rules), metarOutput.innerHTML = a += '<br />'
+}
+
+function renderTAF(e) {
+	let t = '<strong>TAF</strong>(' + e.time.repr.substr(0, 2) + '): ';
+	if (e.error) t += 'No Report Available at AVWX.';
+	else {
+		t += e.station + ' ' + e.time.repr, e.meta.warning && (t += ' <span style="color:red;font-weight:bold;">(expired)</span>'), t += '<br>';
+		for (let a in e.forecast)
+			if ('error' === a) t += 'No Forecast Available.';
+			else {
+				let n = !1;
+				(e.forecast[a].wind_speed && e.forecast[a].wind_speed.value > 19 || e.forecast[a].wind_gust || e.forecast[a].wind_shear) && (n = !0), t +=  + ' ', document.getElementById('metartaf_raw').checked ? t += n ? boldElement(e.forecast[a].sanitized) : e.forecast[a].sanitized : t += e.forecast[a].start_time.repr + ': ' + e.forecast[a].summary, t += '<br/>'
+			}
+	}
+	tafOutput.innerHTML = t
+}
+
+function validateICAOid(e) {
+	return !('' === e || 4 != e.length || !e.match('[A-Z]{4}'))
+}
+
+function clearValues(e) {
+	localStorage.clear(), stationOutput.innerHTML = e, timeOutput.innerHTML = '', metarOutput.innerHTML = '', tafOutput.innerHTML = ''
+}
+
+function readmetartafform(e) {
+	const t = e.icaoID.value.toUpperCase();
+	if (!validateICAOid(t)) return metarOutput.innerHTML = tafOutput.innerHTML = timeOutput.innerHTML = '', stationOutput.innerHTML = invalidICAOid;
+	saveICAOid(t), clearValues('Loading MET Data...'), fetchStationData('station', t).then(e => {
+		void 0 !== e.error ? stationOutput.innerHTML = e.error : (localStorage.setItem('Station_INFO', JSON.stringify(e)), renderStationInfo(e), fetchStationData('metar', t).then(e => {
+			void 0 !== e && (localStorage.setItem('Station_METAR', JSON.stringify(e)), renderMETAR(e), fetchStationData('taf', t).then(e => {
+				void 0 !== e && (localStorage.setItem('Station_TAF', JSON.stringify(e)), renderTAF(e))
+			}))
+		}))
+	})
+}
+
+function floatFix(e, t) {
+	return e.toFixed(t).toString()
+}
+
+function convertKTStoKMH(e) {
+	return 1.852 * e
+}
+
+function convertKTStoMPS(e) {
+	return .514444 * e
+}
+
+function convert2C(e) {
+	return 5 / 9 * (e - 32)
+}
+
+function convertFtoRa(e) {
+	return e + 459.67
+}
+
+function convert2F(e) {
+	return 9 * e / 5 + 32
+}
+
+function convertCtoK(e) {
+	return e + 273.15
+}
+
+function convert2HPA(e) {
+	return 33.86389 * e
+}
+
+function convertHPAtoMMHG(e) {
+	return e / 1.33322
+}
+
+function convertHPAtoBAR(e) {
+	return e / 1e3
+}
+
+function convert2inHG(e) {
+	return .029529 * e
+}
+
+function convertFTtoM(e) {
+	return .3048 * e
+}
+
+function calcPressureLapseRate(e, t) {
+	return 96 * (e + 273) / t
+}
+
+function calcPressureAlt(e, t, a) {
+	return Math.round(e + (1013 - t) * a)
+}
+
+function calcDensityAlt(e, t, a) {
+	return Math.round(e + 120 * (t - a))
+}
+
+function calcTempISApa(e) {
+	return 15 - e / 1e3 * 2
+}
+
+function freezingLevel(e, t) {
+	return Math.abs(e + t / 2 * 1e3)
+}
+
+function wetBulbTemp(e, t) {
+	return e * Math.atan(.151977 * Math.pow(t + 8.313659, .5)) + Math.atan(e + t) - Math.atan(t - 1.676331) + .00391838 * Math.pow(t, 1.5) * Math.atan(.023101 * t) - 4.686035
+}
+
+function calcAtmosphere(e, t, a, n) {
+	const r = wetBulbTemp(t, n);
+	e.WetBulb.value = floatFix(r, 2), localStorage.setItem('WET_BULB', r);
+	const o = 400 * (t - a);
+	e.CloudBase.value = Math.round(o), localStorage.setItem('CLOUD_FT', o);
+	const l = t - o / 1e3 * 3;
+	e.CloudTemp.value = floatFix(l, 2), localStorage.setItem('CLOUD_TEMP', l);
+	const i = freezingLevel(o, a);
+	e.FLevel.value = Math.round(i), localStorage.setItem('FZLEVEL_FT', i)
+}
+
+function dewPoint(e, t) {
+	return 237.3 / (1 / (Math.log(t / 100) / 17.27 + e / (e + 237.3)) - 1)
+}
+
+function calcDistanceConversion(e) {
+	if ('' === e.Distance.value) return notifyBar.innerHTML = calcError;
+	const t = parseFloat(e.Distance.value);
+	return e.Radio1[0].checked ? (e.DistanceNM.value = floatFix(t, 2), e.DistanceSM.value = floatFix(1.150779 * t, 2), void(e.DistanceKM.value = floatFix(1.852 * t, 2))) : e.Radio1[1].checked ? (e.DistanceNM.value = floatFix(.868976 * t, 2), e.DistanceSM.value = floatFix(t, 2), void(e.DistanceKM.value = floatFix(1.609344 * t, 2))) : e.Radio1[2].checked ? (e.DistanceNM.value = floatFix(t / 1.852, 2), e.DistanceSM.value = floatFix(t / 1.150779, 2), void(e.DistanceKM.value = floatFix(t, 2))) : void 0
+}
+
+function calcSpeedConversion(e) {
+	if ('' === e.Speed.value) return notifyBar.innerHTML = calcError;
+	const t = parseFloat(e.Speed.value);
+	return e.Radio1[0].checked ? (e.SpeedKts.value = floatFix(t, 2), e.SpeedMph.value = floatFix(1.150779 * t, 2), e.SpeedKmh.value = floatFix(1.852 * t, 2), void(e.Speedmps.value = floatFix(.514444 * t, 2))) : e.Radio1[1].checked ? (e.SpeedKts.value = floatFix(.868976 * t, 2), e.SpeedMph.value = floatFix(t, 2), e.SpeedKmh.value = floatFix(1.609344 * t, 2), void(e.Speedmps.value = floatFix(.44704 * t, 2))) : e.Radio1[2].checked ? (e.SpeedKts.value = floatFix(.539957 * t, 2), e.SpeedMph.value = floatFix(.621371 * t, 2), e.SpeedKmh.value = floatFix(t, 2), void(e.Speedmps.value = floatFix(.277778 * t, 2))) : e.Radio1[3].checked ? (e.SpeedKts.value = floatFix(1.943844 * t, 2), e.SpeedMph.value = floatFix(2.236936 * t, 2), e.SpeedKmh.value = floatFix(3.6 * t, 2), void(e.Speedmps.value = floatFix(t, 2))) : void 0
+}
+
+function calcFuelConversion(e) {
+	if ('' === e.amountFuel.value) return notifyBar.innerHTML = calcError;
+	const t = parseFloat(e.amountFuel.value);
+	let a = .755;
+	if (e.Radio2[0].checked && (a = .81), e.Radio2[1].checked && (a = .72), e.Radio1[0].checked) {
+		e.fuelUSG.value = floatFix(t, 2), e.fuelIGAL.value = floatFix(.832674 * t, 2), e.fuelLiters.value = floatFix(3.785412 * t, 2);
+		const n = t * a * 3.785412;
+		return e.fuelKg.value = floatFix(n, 2), void(e.fuelLbs.value = floatFix(2.204624 * n, 2))
+	}
+	if (e.Radio1[1].checked) {
+		e.fuelUSG.value = floatFix(1.200949 * t, 2), e.fuelIGAL.value = floatFix(t, 2), e.fuelLiters.value = floatFix(4.54609 * t, 2);
+		const n = t * a * 4.54609;
+		return e.fuelKg.value = floatFix(n, 2), void(e.fuelLbs.value = floatFix(2.204624 * n, 2))
+	}
+	if (e.Radio1[2].checked) {
+		e.fuelUSG.value = floatFix(t / 3.785412, 2), e.fuelIGAL.value = floatFix(t / 4.54609, 2), e.fuelLiters.value = floatFix(t, 2);
+		const n = t * a;
+		return e.fuelKg.value = floatFix(n, 2), void(e.fuelLbs.value = floatFix(2.204624 * n, 2))
+	}
+}
+
+function calcWeightConversion(e) {
+	if ('' === e.amountWeight.value) return notifyBar.innerHTML = calcError;
+	const t = parseFloat(e.amountWeight.value);
+	return e.Radio1[0].checked ? (e.weightLBS.value = floatFix(t, 2), void(e.weightKG.value = floatFix(.453592 * t, 2))) : e.Radio1[1].checked ? (e.weightLBS.value = floatFix(2.204624 * t, 2), void(e.weightKG.value = floatFix(t, 2))) : void 0
+}
+
+function calcPowerConversion(e) {
+	if ('' === e.amountPower.value) return notifyBar.innerHTML = calcError;
+	const t = parseFloat(e.amountPower.value);
+	return e.Radio1[0].checked ? (e.powerBHP.value = floatFix(t, 2), e.powerPS.value = floatFix(1.01387 * t, 2), void(e.powerKW.value = floatFix(.745699 * t, 2))) : e.Radio1[1].checked ? (e.powerBHP.value = floatFix(1.341022 * t, 2), e.powerPS.value = floatFix(.98632 * t, 2), void(e.powerKW.value = floatFix(t, 2))) : void 0
+}
+
+function calcEnergyConversion(e) {
+	if ('' === e.amountMass.value || '' === e.amountSpd.value || '' === e.amountAlt.value) return notifyBar.innerHTML = calcError;
+	const t = parseFloat(e.amountMass.value),
+		a = parseFloat(e.amountSpd.value);
+	let n = parseFloat(e.amountAlt.value);
+	n < 0 && (n = 0);
+	const r = .5 * t * Math.pow(.514444 * a, 2) / 3600,
+		o = t * (.3048 * n) * 9.80665 / 3600;
+	e.kineticEn.value = floatFix(r, 1), e.potentialEn.value = floatFix(o, 1)
+}
+
+function calcFuelConsumption(e) {
+	if ('' === e.FBURN.value || '' === e.FTIME.value) return notifyBar.innerHTML = calcError;
+	const t = e.Radio1[0].checked ? parseFloat(e.FTIME.value) / 60 : e.FTIME.value;
+	e.FUSED.value = floatFix(t * parseFloat(e.FBURN.value), 1)
+}
+
+function calcTimeSpeedDistance(e) {
+	const t = parseInt(e.SPEED.value, 10),
+		a = parseInt(e.TIME.value, 10),
+		n = parseInt(e.DISTANCE.value, 10);
+	if ('' === e.SPEED.value || '' === e.DISTANCE.value)
+		if ('' === e.TIME.value || '' === e.DISTANCE.value) {
+			if ('' === e.TIME.value || '' === e.SPEED.value) return notifyBar.innerHTML = 'Please fill/clear out the required fields.';
+			e.DISTANCE.value = floatFix(t * a / 60, 1)
+		} else e.SPEED.value = floatFix(n / a * 60, 1);
+	else e.TIME.value = floatFix(n / t * 60, 1)
+}
+
+function calcMassBalance(e) {
+	e.EMPTYMOMENT.value = parseFloat(e.EMPTYMASS.value) * parseFloat(e.EMPTYCOG.value), e.FROWMOMENT.value = parseFloat(e.FROWMASS.value) * parseFloat(e.FROWCOG.value), e.SROWMOMENT.value = parseFloat(e.SROWMASS.value) * parseFloat(e.SROWCOG.value), e.BAGMOMENT.value = parseFloat(e.BAGMASS.value) * parseFloat(e.BAGCOG.value), e.FUELMOMENT.value = parseFloat(e.FUELMASS.value) * parseFloat(e.FUELCOG.value), e.ZFMASS.value = parseFloat(e.EMPTYMASS.value) + parseFloat(e.FROWMASS.value) + parseFloat(e.SROWMASS.value) + parseFloat(e.BAGMASS.value), e.ZFMOMENT.value = parseFloat(e.EMPTYMOMENT.value) + parseFloat(e.FROWMOMENT.value) + parseFloat(e.SROWMOMENT.value) + parseFloat(e.BAGMOMENT.value), e.ZFCOG.value = parseFloat(e.ZFMOMENT.value) / parseFloat(e.ZFMASS.value), e.TOMASS.value = parseFloat(e.ZFMASS.value) + parseFloat(e.FUELMASS.value), e.TOMOMENT.value = parseFloat(e.ZFMOMENT.value) + parseFloat(e.FUELMOMENT.value), e.TOCOG.value = parseFloat(e.TOMOMENT.value) / parseFloat(e.TOMASS.value), e.ZFCOG.value = floatFix(parseFloat(e.ZFCOG.value), 1), e.TOCOG.value = floatFix(parseFloat(e.TOCOG.value), 1)
+}
+
+function calcWindChill(e) {
+	if ('' === e.OAT.value || '' === e.WSPD.value) return notifyBar.innerHTML = calcError;
+	const t = parseInt(e.OAT.value, 10),
+		a = parseInt(e.WSPD.value, 10),
+		n = document.getElementById('temp'),
+		r = document.getElementById('wndspd'),
+		o = e.corf[0].checked ? convert2C(t) : t,
+		l = e.corf[1].checked ? convert2F(t) : t,
+		i = e.wind[1].checked ? a / .868976 : a;
+	if (l > 40 || l < -45) return n.classList.add('w3-red'), notifyBar.innerHTML = 'Wind chill is outside limits.';
+	if (i > 60 || i < 5) return r.classList.add('w3-red'), notifyBar.innerHTML = 'Wind chill is outside limits.';
+	n.classList.remove('w3-red'), r.classList.remove('w3-red');
+	let u = 35.74 + .6215 * l - 35.75 * Math.pow(i, .16) + .4275 * l * Math.pow(i, .16);
+	u > l && (u = l), e.WindChillTempF.value = Math.round(u), e.WindChillTempC.value = Math.round(convert2C(u)), e.OATTempF.value = floatFix(l, 0), e.OATTempC.value = floatFix(o, 0)
+}
+
+function calcHeatIndex(e) {
+	if ('' === e.OAT.value || '' === e.RH.value) return notifyBar.innerHTML = calcError;
+	const t = document.getElementById('temp'),
+		a = document.getElementById('hum'),
+		n = parseInt(e.OAT.value, 10),
+		r = parseInt(e.RH.value, 10),
+		o = e.corf[0].checked ? convert2C(n) : n,
+		l = e.corf[1].checked ? convert2F(n) : n;
+	if (l < 80 || l > 110) return t.classList.add('w3-red'), notifyBar.innerHTML = 'Heat index is outside limits.';
+	if (r < 40 || r > 100) return a.classList.add('w3-red'), notifyBar.innerHTML = 'Choose a Relative Humidity between 40 and 100 %.';
+	t.classList.remove('w3-red'), a.classList.remove('w3-red');
+	const i = 2.04901523 * l - 42.379 + 10.14333127 * r - .22475541 * l * r - 6.83783 * Math.pow(10, -3) * Math.pow(l, 2) - 5.481717 * Math.pow(10, -2) * Math.pow(r, 2) + 1.22874 * Math.pow(10, -3) * Math.pow(l, 2) * r + 8.5282 * Math.pow(10, -4) * l * Math.pow(r, 2) - 1.99 * Math.pow(10, -6) * Math.pow(l, 2) * Math.pow(r, 2),
+		u = dewPoint(o, r);
+	e.HeatIndexTempF.value = Math.round(i), e.HeatIndexTempC.value = Math.round(convert2C(i)), e.DEWTempF.value = floatFix(convert2F(u), 0), e.DEWTempC.value = floatFix(u, 0), e.OATTempF.value = floatFix(l, 0), e.OATTempC.value = floatFix(o, 0)
+}
+
+function calcXwind(e) {
+	if ('' === e.runway.value || '' === e.winddir.value || '' === e.windspeed.value) return notifyBar.innerHTML = calcError;
+	if ('VRB' == e.winddir.value || '0' == e.windspeed.value) return notifyBar.innerHTML = windSpeedDir;
+	const t = document.getElementById('tailwind'),
+		a = document.getElementById('crosswind'),
+		n = document.getElementById('xwangle'),
+		r = document.getElementById('lrxw'),
+		o = parseInt(e.winddir.value, 10),
+		l = parseInt(e.windspeed.value, 10),
+		i = parseInt(e.runway.value, 10);
+	localStorage.setItem('WIND_SPD', l), localStorage.setItem('WIND_DIR', o);
+	let u = Math.abs(o - i);
+	const c = Math.round(Math.abs(l * Math.sin(.017453 * u))),
+		s = Math.round(l * Math.cos(.017453 * u));
+	e.headwind.value = s, e.crosswind.value = c, u > 180 && (u = Math.abs(u - 360)), e.xwangle.value = u, 0 === u || 180 === u ? r.innerHTML = 'No ' : o > i && o < i + 180 || i - 180 > o ? r.innerHTML = 'Right ' : (o < i || o > i + 180) && (r.innerHTML = 'Left '), n.classList.toggle('w3-amber', u > 45 && u < 61), n.classList.toggle('w3-red', u > 60), a.classList.toggle('w3-red', c > 20), a.classList.toggle('w3-amber', c > 15 && c < 21), t.classList.toggle('w3-amber', s > 19), t.classList.toggle('w3-red', s < 0 || s > 24)
+}
+
+function calcTempConversion(e) {
+	if ('' === e.Temp.value) return notifyBar.innerHTML = calcError;
+	const t = parseFloat(e.Temp.value, 10);
+	let a, n = 0;
+	e.Radio1[0].checked ? (n = t, a = convert2C(t)) : (a = t, n = convert2F(t)), e.TempC.value = floatFix(a, 2), e.TempF.value = floatFix(n, 2), e.TempK.value = floatFix(convertCtoK(a), 2), e.TempR.value = floatFix(convertFtoRa(n), 2)
+}
+
+function calcPressConversion(e) {
+	if ('' === e.Press.value) return notifyBar.innerHTML = calcError;
+	let t = parseFloat(e.Press.value, 10);
+	t = e.Radio1[1].checked ? t : Math.round(convert2HPA(t)), e.HPA.value = floatFix(t, 2), e.INHG.value = floatFix(convert2inHG(t), 2), e.MMHG.value = floatFix(convertHPAtoMMHG(t), 2), e.BAR.value = floatFix(convertHPAtoBAR(t), 2)
+}
+
+function calcDewpoint(e) {
+	if ('' === e.Temp.value || '' === e.RH.value) return notifyBar.innerHTML = calcError;
+	const t = parseInt(e.Temp.value, 10),
+		a = parseFloat(e.RH.value, 10);
+	if (a > 100) return notifyBar.innerHTML = 'Relative humidity can not be higher than 100%!';
+	const n = e.Radio1[0].checked ? convert2C(t) : t,
+		r = dewPoint(n, a);
+	e.DPC.value = floatFix(r, 2), e.DPF.value = floatFix(convert2F(r), 2), calcAtmosphere(e, n, r, a)
+}
+
+function calcRelHumidity(e) {
+	if ('' === e.Temp.value || '' === e.DP.value) return notifyBar.innerHTML = calcError;
+	const t = parseInt(e.Temp.value, 10),
+		a = parseInt(e.DP.value, 10),
+		n = e.Radio1[0].checked ? convert2C(t) : t,
+		r = e.Radio1[0].checked ? convert2C(a) : a;
+	if (r > n) return notifyBar.innerHTML = 'Dew point can not be higher than temperature!';
+	const o = 100 * Math.exp(17.27 * (r / (r + 237.3) - n / (n + 237.3)));
+	e.RH.value = floatFix(o, 2), localStorage.setItem('REL_HUM', floatFix(o, 2)), calcAtmosphere(e, n, r, o)
+}
+
+function calcPressureAltitude(e) {
+	if ('' === e.Temp.value || '' === e.QNH.value || '' === e.Alt.value) return notifyBar.innerHTML = calcError;
+	const t = parseInt(e.Alt.value, 10),
+		a = parseInt(e.Temp.value, 10),
+		n = parseFloat(e.QNH.value, 10),
+		r = e.Radio1[0].checked ? convert2C(a) : a,
+		o = e.Radio2[0].checked ? n : Math.round(convert2HPA(n)),
+		l = calcPressureLapseRate(r, o);
+	e.PA.value = calcPressureAlt(t, o, l)
+}
+
+function calcDensityAltitude(e) {
+	if ('' === e.Temp.value || '' === e.ISApa.value || '' === e.Palt.value) return notifyBar.innerHTML = calcError;
+	const t = parseInt(e.Temp.value, 10),
+		a = parseInt(e.Palt.value, 10),
+		n = parseInt(e.ISApa.value, 10),
+		r = e.Radio1[0].checked ? convert2C(t) : t,
+		o = e.Radio2[0].checked ? convert2C(n) : n;
+	e.DA.value = calcDensityAlt(a, r, o)
+}
+
+function calcPressureDensityAlt(e) {
+	if ('' === e.Temp.value || '' === e.QNH.value || '' === e.Elev.value) return notifyBar.innerHTML = calcError;
+	const t = parseInt(e.Temp.value, 10),
+		a = parseFloat(e.QNH.value, 10),
+		n = parseInt(e.Elev.value, 10);
+	localStorage.setItem('ELEV_FT', n);
+	const r = e.Radio1[0].checked ? convert2C(t) : t;
+	localStorage.setItem('OAT_C', r);
+	const o = e.Radio2[0].checked ? a : Math.round(convert2HPA(a));
+	localStorage.setItem('QNH_HPA', o);
+	const l = calcPressureAlt(n, o, calcPressureLapseRate(r, o));
+	e.PA.value = l, localStorage.setItem('PRESS_ALT', l);
+	const i = calcDensityAlt(l, r, calcTempISApa(l));
+	e.DA.value = i, localStorage.setItem('DENS_ALT', i)
+}
+
+function calcActualAlt(e) {
+	if ('' === e.Temp.value || '' === e.QNH.value || '' === e.PAlt.value) return notifyBar.innerHTML = calcError;
+	const t = parseInt(e.Temp.value, 10),
+		a = parseFloat(e.QNH.value, 10),
+		n = parseInt(e.PAlt.value, 10),
+		r = e.Radio1[0].checked ? convert2C(t) : t,
+		o = e.Radio2[0].checked ? a : Math.round(convert2HPA(a)),
+		l = calcPressureLapseRate(r, o);
+	e.ActAlt.value = floatFix(n - (1013 - o) * l, 0)
+}
+
+function calcPressAtAlt(e) {
+	if ('' === e.Temp.value || '' === e.QNH.value || '' === e.Elev.value) return notifyBar.innerHTML = calcError;
+	const t = parseInt(e.Temp.value, 10),
+		a = parseFloat(e.QNH.value, 10),
+		n = parseInt(e.Elev.value, 10),
+		r = convertCtoK(e.Radio2[0].checked ? convert2C(t) : t),
+		o = e.Radio1[1].checked ? a : Math.round(convert2HPA(a)),
+		l = convertFTtoM(n),
+		i = o * Math.exp(-.2840398106 * l / (8.31432 * r));
+	e.HPA.value = floatFix(i, 2), e.INHG.value = floatFix(convert2inHG(i), 2)
+}
+
+function calcTAS(e) {
+	if ('' === e.IAS.value || '' === e.OAT.value || '' === e.ALT.value || '' === e.QNH.value) return notifyBar.innerHTML = calcError;
+	const t = parseInt(e.IAS.value, 10),
+		a = parseInt(e.OAT.value, 10),
+		n = parseFloat(e.QNH.value, 10),
+		r = parseInt(e.ALT.value, 10);
+	localStorage.setItem('ALT_FT', r);
+	const o = e.Radio1[1].checked ? n : Math.round(convert2HPA(n)),
+		l = e.Radio2[1].checked ? a : Math.round(convert2C(a)),
+		i = calcPressureAlt(r, o, calcPressureLapseRate(l, o)),
+		u = calcDensityAlt(i, l, calcTempISApa(i)),
+		c = floatFix(t * (1 / Math.pow(Math.pow((288.15 - .0019812 * u) / 288.15, 1 / .234969), .5)), 0);
+	if (e.TAS.value = c, localStorage.setItem('TRUE_AS', c), null !== document.getElementById('DISTH')) {
+		const t = Math.sqrt(Math.pow(3440 + r / 6076, 2) - Math.pow(3440, 2));
+		e.DISTH.value = floatFix(t, 1);
+		const a = 331.3 * Math.sqrt(1 + l / 273.15),
+			n = convertKTStoMPS(c) / a;
+		e.MACH.value = floatFix(n, 2)
+	}
+}
+
+function calcHDGGSWCA(e) {
+	if ('' === e.CRS.value || '' === e.TAS.value || '' === e.WDIR.value || '' === e.WSPD.value) return notifyBar.innerHTML = calcError;
+	if ('VRB' == e.WDIR.value || '0' == e.WSPD.value) return notifyBar.innerHTML = windSpeedDir;
+	const t = parseInt(e.WSPD.value, 10),
+		a = parseInt(e.TAS.value, 10),
+		n = Math.PI / 180 * parseInt(e.CRS.value, 10),
+		r = Math.PI / 180 * parseInt(e.WDIR.value, 10),
+		o = t / a * Math.sin(r - n);
+	if (Math.abs(o) > 1) return notifyBar.innerHTML = 'Caution: High Wind Warning!';
+	let l = n + Math.asin(o);
+	l < 0 && (l += 2 * Math.PI), l > 2 * Math.PI && (l -= 2 * Math.PI), e.HDG.value = Math.round(180 / Math.PI * l), e.GS.value = Math.round(a * Math.sqrt(1 - Math.pow(o, 2)) - t * Math.cos(r - n));
+	const i = Math.atan2(t * Math.sin(l - r), a - t * Math.cos(l - r));
+	e.WCA.value = Math.round(180 / Math.PI * (-1 * i))
+}
+
+function calcGSCRSWCA(e) {
+	if ('' === e.HDG.value || '' === e.TAS.value || '' === e.WDIR.value || '' === e.WSPD.value) return notifyBar.innerHTML = calcError;
+	if ('VRB' == e.WDIR.value || '0' == e.WSPD.value) return notifyBar.innerHTML = windSpeedDir;
+	const t = parseInt(e.WSPD.value, 10),
+		a = parseInt(e.TAS.value, 10),
+		n = Math.PI / 180 * parseInt(e.WDIR.value, 10),
+		r = Math.PI / 180 * parseInt(e.HDG.value, 10);
+	e.GS.value = Math.round(Math.sqrt(Math.pow(t, 2) + Math.pow(a, 2) - 2 * t * a * Math.cos(r - n)));
+	const o = Math.atan2(t * Math.sin(r - n), a - t * Math.cos(r - n));
+	e.WCA.value = Math.round(180 / Math.PI * o);
+	const l = (r + o) % (2 * Math.PI);
+	e.CRS.value = Math.round(180 / Math.PI * l)
+}
+
+function calcCourseDevCorr(e) {
+	if ('' === e.DISTOC.value || '' === e.DISTFL.value || '' === e.DISTREM.value) return notifyBar.innerHTML = calcError;
+	const t = parseInt(e.DISTOC.value, 10),
+		a = parseInt(e.DISTFL.value, 10),
+		n = parseInt(e.DISTREM.value, 10);
+	n < 5 && alert('You must have the target in sight!'), e.CRStoParl.value = floatFix(t / a * 60, 1), e.CRStoPoint.value = floatFix(t / n * 60, 1)
+}
+
+function calcCoriolisEffect(e) {
+	if ('' === e.MASS.value || '' === e.VEL.value || '' === e.LAT.value) return notifyBar.innerHTML = calcError;
+	const t = parseInt(e.LAT.value, 10);
+	if (t > 90) return e.LAT.classList.add('w3-red'), notifyBar.innerHTML = calcError;
+	e.LAT.classList.remove('w3-red');
+	const a = 2 * Math.PI / 86400,
+		n = convertKTStoMPS(parseInt(e.VEL.value, 10));
+	let r = parseInt(e.MASS.value, 10);
+	const o = 2 * (r = e.Radio1[1].checked ? .453592 * r : r) * n * a * Math.sin(.017453 * t),
+		l = o / r;
+	e.CFN.value = floatFix(o, 3), e.CAM.value = floatFix(l, 4), notifyBar.innerHTML = supportApp
+}
+const calcError = 'Please enter the required values in the calculator.',
+	invalidICAOid = 'Please enter a valid ICAO name.',
+	supportApp = '',
+	latLonError = 'Please enter valid LAT/LON values.',
+	windSpeedDir = 'Wind direction/speed is variable/zero.',
+	auth = 'ZREKww71_za5ChJLynDFgsrD1-QWqvKNbX38zZOI9-I',
+	avwxURL = 'https://avwx.rest/api/';
+let stationOutput = document.getElementById('station-output'),
+	metarOutput = document.getElementById('metar-output'),
+	tafOutput = document.getElementById('taf-output'),
+	nearestStations = document.getElementById('nearest-stations'),
+	timeOutput = document.getElementById('time-output'),
+	notifyBar = document.getElementById('notifications');
+const optFetch = {
+	method: 'GET',
+	referrer: '',
+	headers: {
+		Authorization: auth
+	}
+};
+</script>
+
+
+</body>
+
+
+</html>
