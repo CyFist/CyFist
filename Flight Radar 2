@@ -26,12 +26,15 @@
 				transform-origin: center;
 			}
 
-			.leaflet.control {
-				border: 2px solid rgba(255, 255, 255, 0.9);
+			.leaflet-control-zoom, .leaflet-control-layers-expanded, .leaflet-control-scale-line ,.leaflet-container, .leaflet-control-attribution {
+				user-select: none; /* supported by Chrome and Opera */
+               -webkit-user-select: none; /* Safari */
+               -khtml-user-select: none; /* Konqueror HTML */
+               -moz-user-select: none; /* Firefox */
+               -ms-user-select: none; /* Internet Explorer/Edge */;
 			}
             
 			/* Customise Zoom Controls */
-			
             .leaflet-touch .leaflet-control-zoom {
                 border: 3px solid rgba(255, 255, 255, 0.5) !important;
             }
@@ -40,7 +43,7 @@
             	box-shadow: none;
             	border-radius: 4px;
             	background: rgba(0, 0, 0, 0.5) !important;
-            	}
+        	}
             
 			.leaflet-control-zoom a {
 				color: white !important;
@@ -48,7 +51,7 @@
             	border: none !important;
 				transition: all 0.5s ease;
 				text-align: center;
-				margin:-1px, 0px, -1px, 0px;
+				margin: -1px, 0px, -1px, 0px;
 			}
 			
             .leaflet-control-zoom a:hover {
@@ -56,7 +59,7 @@
             	display: block;
             	text-align: center;
             	text-decoration: none;
-            	color: lightgreen !important;
+            	color: gold !important;
 				background: rgba(0, 0, 0, 0.5) !important;
 		        
             	}
@@ -73,15 +76,37 @@
 				background: rgba(0, 0, 0, 0.5) !important;
 			}
 
-
-			.leaflet-control-layers-base {
-
-			}
-
 			.leaflet-control-layers-expanded {
-				width: 100px !important;
+		        user-select: none; /* supported by Chrome and Opera */
+               -webkit-user-select: none; /* Safari */
+               -khtml-user-select: none; /* Konqueror HTML */
+               -moz-user-select: none; /* Firefox */
+               -ms-user-select: none; /* Internet Explorer/Edge */
+				width: 100% !important;
 				background: rgba(0, 0, 0, 0.5) !important;
+				padding: 3px !important;
 				background-clip: padding-box;
+			}
+			
+			label > div > span  {
+
+			    font-size: 14px;
+			    margin: -8px 0px 0px 5px;
+			    vertical-align: middle;
+				display: inline-block !important;
+			}
+			
+			label > div  {
+			    border: 2px solid rgba(225, 215, 0, 0.0) !important;
+			    border-radius: 4px;
+			    align-items: middle !important;
+			    font-size: 12px;
+			}
+            
+			label > div:hover  {
+			    background:rgba(0,0,0,0.5);
+				border: 2px solid rgba(225, 215, 0, 1) !important;
+				color: rgba(225, 215, 0, 1);
 			}
             
 			.leaflet-control-layers-separator {
@@ -89,55 +114,76 @@
 				margin: 5px -5px 5px -5px;
 			}
             
-            div > input[type=checkbox],div > input[type=radio],div > input[type=checkbox]:checked,div > input[type=radio]:checked {
+            label > div > input[type=checkbox],div > input[type=radio],div > input[type=checkbox]:checked,div > input[type=radio]:checked {
 			    -webkit-appearance: none;
-			    height: 19px !important;
-				width: 19px !important;
+			    height: 18px !important;
+				width: 18px !important;
 				background: none !important;
-				border: 2px solid rgba(255, 255, 255, 0.5) !important;
+				border: 2px solid rgba(255, 255, 255, 0.7) !important;
 				transition-duration: 0.3s;
 			}
 			
-			div > input[type=checkbox]:checked,div > input[type=radio]:checked {
-			    content: url("https://cliply.co/wp-content/uploads/2021/03/372103861_CHECK_MARK_ALT_400px.gif");
-			    background: lightgreen !important;
-			}
-
-            div > input[type=checkbox]:hover,div > input[type=radio]:hover {
-				border: 1px solid rgba(0, 0, 0, 1) !important;
+			label > div > input[type=radio],div > input[type=radio]:checked {
+			    border-radius: 15px;
 			}
 			
-			div > input[type=checkbox]:hover,div > input[type=radio]:hover {
-				border: 1px solid rgba(0, 0, 0, 1) !important;
+			label > div > input[type=checkbox],div > input[type=checkbox]:checked {
+			    margin: 2px 5px 0px 5px;
+			    border-radius: 5px;
+			}
+			
+			label > div > input[type=checkbox]:checked, label > div > input[type=radio]:checked {
+			    content: url("https://www.clker.com/cliparts/x/n/7/m/p/g/check-mark-in-white-md.png");
+			    background: rgba(255, 215, 0,0.9) !important;
 			}
 
 			/* Leaflet Scale Control */
-			.leaflet-control-scale {
-				background: rgba(0, 0, 0, 0.9) !important;
-			}
 
 			.leaflet-control-scale-line {
-				color: lightgreen;
-				border: 2px solid rgba(255, 255, 255, 0.5);
+				color: white;
+				font-size: 14px;
+				border: 2px solid rgba(220, 220, 220, 1);
+				background: rgba(0, 0, 0, 0.4) !important;
 				border-top: none;
 				transition: 0.5s;
 			}
-
+            
+            /* Leaflet Attribution Control */
+            .leaflet-container .leaflet-control-attribution {
+            	background: #fff;
+            	background: rgba(0, 0, 0, 0.5) !important;
+            	color: rgba(255, 255, 255, 0.5) !important ;
+            	margin: 0;
+            	}
+            
+            .leaflet-control-attribution a {
+            	color: rgba(255, 255, 255, 0.5) !important;
+            	}
+            .leaflet-control-attribution a:hover {
+            	text-decoration: none;
+            	color: rgba(225, 215, 0, 1) !important;
+            	}
+            
+            /* Radar Control */
+            
 			.leaflet-radar {
 				/* from leaflet-control-layers */
 				border-radius: 5px;
 				background: rgba(0, 0, 0, 0.5) !important;
 				border: 3px solid rgba(255, 255, 255, 0.5);
 				background-clip: padding-box;
-				padding: 5px 8px 0px 8px;
+				padding: 3px !important;
 				height: 100%;
-				width: 100px;
+				width: 100%;
+				margin: -20px;
+				display: block !important;
 			}
 
-			.leaflet-radar .timestamp {
-				text-align: center;
+			.leaflet-radar span {
+		        
+			    width: 80px !important;
+				text-align: left;
 				color: white;
-				display: block;
 			}
 
 			.leaflet-radar-button {
@@ -145,29 +191,31 @@
 				background: none !important;
 				border: 2px solid rgba(255, 255, 255, 0.5);
 				border-radius: 5px;
-				margin: 2px;
+				margin: 5px;
 				color: rgba(255, 255, 255, 0.5);
-				padding: 2px;
+				padding: 3px;
 				text-decoration: none;
 				width: 50px;
 				transition: 0.3s;
 			}
 			
 			.leaflet-radar-button:hover {
-				border: 2px solid lightgreen;
-				color: lightgreen;
+				border: 2px solid rgba(255, 215, 0,0.9);
+				color: rgba(255, 215, 0,0.9);
+				background: rgba(0, 0, 0, 0.5) !important;
 			}
 
 			.leaflet-radar-slider {
-				width: 100%;
+				width: 150px;
 				height: 15px;
 				-webkit-appearance: none;
-				background: rgba(0, 0, 0, 0.4);
+				background: rgba(255, 255, 255, 0.4);
 				outline: none;
 				border-radius: 15px;
 				border: none;
 				overflow: hidden;
 				box-shadow: none;
+				background-clip: padding-box;
 			}
 
 			.leaflet-radar-slider::-webkit-slider-thumb {
@@ -175,16 +223,18 @@
 				width: 15px;
 				height: 15px;
 				border-radius: 50%;
-				background: rgba(255, 255, 255, 0.5);
+				background: rgba(255, 255, 255, 0.9);
 				cursor: pointer;
 				border: 2px solid rgba(255, 255, 255, 0.9);
-				box-shadow: -207px 0 0 200px rgba(255, 255, 255, 0.5);
+				box-shadow: -207px 0 0 200px rgba(255, 255, 255, 0.6);
 				transition-duration:0.5s;
 			}
 			
 			.leaflet-radar-slider::-webkit-slider-thumb:hover {
 				-webkit-appearance: none;
-				border: 7px solid lightgreen;
+				border: 4px solid rgba(255, 215, 0,1);
+				box-shadow: -207px 0 0 200px rgba(255, 215, 0,0.3);
+				background: black;
 			}
 			
 		</style>
@@ -202,9 +252,11 @@
 					});
 					L.DomEvent.disableScrollPropagation(el);
 					// add control elements within container
-					el.innerHTML = ' <div id = "leaflet-radar-timestamp" class = "timestamp" style = "text-align:center"> </div>' +
-					' <input id = "myslider" type = "range" class="leaflet-radar-slider"oninput = "stop(); showFrame(this.value); return;" value = "&lt;" /> ' +
-					' <input id = "leaflet-radar-button" type = "button" class = "leaflet-radar-button" onclick = "playStop();" value = "Loop" /> ';
+					el.innerHTML = ' <div>' + 
+					'<input id = "leaflet-radar-button" type = "button" class = "leaflet-radar-button" onclick = "playStop();" value = "Loop" />' + 
+					'<span id = "leaflet-radar-timestamp" class = "timestamp" ></span>' +
+					'</div>' +
+					'<input id = "myslider" type = "range" class="leaflet-radar-slider" oninput = "sliderPlay(this.value); return;" value = "&lt;" />';
 					return el;
 				},
 				onRemove: function(map) {
@@ -220,6 +272,10 @@
 			var weather = L.layerGroup();
 			var mbAttr = '&copy;  <a href = "https://www.openstreetmap.org/copyright">OpenStreetMap</a> ',
 				mbUrl = 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
+				
+			var Esri_WorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                	attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                });
 			var grayscale = L.tileLayer(mbUrl, {
 					id: 'mapbox/light-v9',
 					tileSize: 512,
@@ -244,36 +300,44 @@
 					minZoom: 4,
 					maxZoom: 14,
 					tms: true,
+					opacity: 0.7,
 					detectRetina: true,
 					subdomains: '12'
 				});
 			var map = L.map('map', {
 				center: [-31.6691429752277, 116.014641735941],
-				zoom: 10,
+				zoom: 8,
 				layers: [grayscale, openaip, aircraftLayer, weather]
 			});
 			var baseLayers = {
+			    "Satellite": Esri_WorldImagery,
 				"Dark Map": darkmap,
 				"Light Map": grayscale,
-				"Streets": streets
+				"Streets": streets,
 			};
 			var overlays = {
-				"AirSpace": openaip,
+				"Airspace": openaip,
 				"Air Activities": aircraftLayer,
 				"Weather": weather
 			};
 			L.control.layers(baseLayers, overlays).addTo(map);
-			var WxCtrl;
-			Wxctrl = L.control.radar().addTo(map);
+			
 			L.control.scale({
 				metric: false
 			}).addTo(map)
+			
+			var WxCtrl;
+			Wxctrl = L.control.radar({}).addTo(map)
+			
 			map.on('overlayadd', function(eo) {
 				if (eo.name === 'Weather') {
 					Wxctrl = L.control.radar({}).addTo(map);
 					document.getElementById("leaflet-radar-timestamp").innerHTML = timeString;
+					document.getElementById("myslider").min = 0;
+					document.getElementById("myslider").max = mapFrames.length-1;
 					document.getElementById("myslider").value = animationPosition;
 					document.getElementById("leaflet-radar-button").value = 'Loop';
+					
 				}
 			});
 			map.on('overlayremove', function(eo) {
@@ -368,6 +432,7 @@
 				setTimeout(update_Weather, 60000)
 			}
 			update_Weather();
+			
 			/**
 			 * Initialize internal data from the API response and options
 			 */
@@ -385,11 +450,18 @@
 					if (api.radar.nowcast) {
 						mapFrames = mapFrames.concat(api.radar.nowcast);
 					}
+					// add all layers
+					for (let i = 0; i < mapFrames.length; i++) {
+                    addLayer(mapFrames[i]);
+					}
 					// show the last "past" frame
 					lastPastFramePosition = api.radar.past.length - 1;
-					showFrame(lastPastFramePosition);
+					showLayerByIndex(lastPastFramePosition);
+					//showFrame(lastPastFramePosition);
+					animationPosition = lastPastFramePosition
 					document.getElementById("myslider").min = 0;
 					document.getElementById("myslider").max = mapFrames.length-1;
+					document.getElementById("myslider").value = animationPosition;
 				}
 			}
 			/**
@@ -417,44 +489,12 @@
 			 * @param position
 			 * @param preloadOnly
 			 */
-			function changeRadarPosition(position, preloadOnly) {
-				while (position >= mapFrames.length) {
-					position -= mapFrames.length;
-				}
-				while (position < 0) {
-					position += mapFrames.length;
-				}
-				var currentFrame = mapFrames[animationPosition];
-				var nextFrame = mapFrames[position];
-				addLayer(nextFrame);
-				if (preloadOnly) {
-					return;
-				}
-				animationPosition = position;
-				if (radarLayers[currentFrame.path]) {
-					radarLayers[currentFrame.path].setOpacity(0);
-				}
-				radarLayers[nextFrame.path].setOpacity(0.575);
-				var plusminus = nextFrame.time > Date.now() / 1000 ? '+' : '-';
-				dateObj = new Date(nextFrame.time * 1000);
-				hours = dateObj.getHours();
-				minutes = dateObj.getMinutes();
 
-				timeString = hours.toString().padStart(2, '0') +
-					minutes.toString().padStart(2, '0') +
-					'H (' + plusminus + Math.floor(Math.abs(dateObj - Date.now()) / 60000) + 'min)';
-				document.getElementById("leaflet-radar-timestamp").innerHTML = timeString;
-				document.getElementById("myslider").value = position
-			}
 			/**
 			 * Check avialability and show particular frame position from the timestamps list
 			 */
 			function showFrame(nextPosition) {
-				var preloadingDirection = nextPosition - animationPosition > 0 ? 1 : -1;
 				changeRadarPosition(nextPosition);
-				// preload next next frame (typically, +1 frame)
-				// if don't do that, the animation will be blinking at the first loop
-				changeRadarPosition(nextPosition + preloadingDirection, true);
 			}
 			/**
 			 * Stop the animation
@@ -471,17 +511,59 @@
 			}
 
 			function play() {
-				document.getElementById("leaflet-radar-button").value = 'Stop';
-				showFrame(animationPosition + 1)
+				hideLayerByIndex(animationPosition);
+                incrementLayerIndex();
+                showLayerByIndex(animationPosition);
+
+                document.getElementById("myslider").value = animationPosition;
+                document.getElementById("leaflet-radar-button").value = 'Stop';
+                
 				// Main animation driver. Run this function every 500 ms
 				animationTimer = setTimeout(play, 500);
 			}
-
+            
 			function playStop() {
 				if (!stop()) {
 					play();
 				}
 			}
+			
+            function sliderPlay(){
+                stop();
+                hideLayerByIndex(animationPosition);
+                animationPosition = +document.getElementById("myslider").value;
+                showLayerByIndex(animationPosition);
+                
+            }
+			
+		    function hideLayerByIndex(position) {
+		        if (radarLayers[mapFrames[position].path]) {
+					radarLayers[mapFrames[position].path].setOpacity(0);
+				}
+                document.getElementById("leaflet-radar-timestamp").innerHTML = ``;
+            }
+        
+            function showLayerByIndex(position) {
+				radarLayers[mapFrames[position].path].setOpacity(0.575);
+                
+                var plusminus = mapFrames[position].time > Date.now() / 1000 ? '+' : '-';
+				dateObj = new Date(mapFrames[position].time * 1000);
+				hours = dateObj.getHours();
+				minutes = dateObj.getMinutes();
+				timeString = hours.toString().padStart(2, '0') + 
+				            minutes.toString().padStart(2, '0') +
+					        'H (' + plusminus + Math.floor(Math.abs(dateObj - Date.now()) / 60000) + 'min)';
+				document.getElementById("leaflet-radar-timestamp").innerHTML = timeString;
+            }
+            
+            
+            function incrementLayerIndex() {
+                
+                animationPosition++;
+                if (animationPosition > mapFrames.length - 1) {
+                    animationPosition = 0;
+                }
+            }
 			/**
 			 * Handle arrow keys for navigation between next \ prev frames
 			 */
@@ -502,8 +584,11 @@
 				e.preventDefault();
 				return false;
 			}
+//bomw0004 - defCL1M8TE
+//130sqn - Password4
 		</script>
 
 	</body>
+
 
 </html>
