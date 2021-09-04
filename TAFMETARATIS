@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+  <body>
+  	  <style>
+  	  html{
+  	      background: rgba(5,5,5,0.9);
+  	  }
+  	  body {
+  	      position:relative;
+  	      width: 90%;
+  	      
+  	  }
+      .div_Af, .div_Afname, .div_Allwx, .div_wx, .div_wx_type {
+         color: white;
+         font: 18px 'Lucida Console', Monaco, monospace;
+         margin: 10px;
+      }
+      
+      .div_Af {
+         padding: 10px;
+         margin: 10px;
+         //background: rgba(255,255,255,0.15);
+         //border-width: 4px;
+         //border-style: solid;
+         //border-image: linear-gradient(to right, gold, black) 0.5
+      } 
+      
+      .div_Afname {
+          position: relative;
+          color: rgba(255, 255, 255, 0.8) !important;
+          font: bold 45px 'Lucida Console', Monaco, monospace !important;
+          padding: 0px 0px 0px 30px;
+          margin: 0px 0px -18px 0px !important;
+      }
+      
+      .div_Allwx {
+          border: 4px solid rgba(255, 255, 255, 0.8);
+          padding:15px;
+          //border-radius: 20px;
+          //background: rgba(255,255,255,0.15);
+      } 
+      
+      .div_wx_type {
+          font-size: 25px;
+          margin: 0px 0px -13px 10px !important;
+      }
+      
+      .div_wx {
+          position: relative;
+          padding: 15px 15px 15px 15px;
+          line-height: 20pt;
+          background: rgba(255,255,255,0.1);
+      } 
+      
+      
+      </style>
+      <script>
+        const SOAP_URI = "https://cors-anywhere.herokuapp.com/https://www.airservicesaustralia.com/naips/briefing-service?wsdl"
+        var text, parser, xmlDoc;
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.open('POST', SOAP_URI, true);
+        var sr =     '<?xml version="1.0" encoding="utf-8"?>' +
+                        '<SOAP-ENV:Envelope ' + 
+                            'xmlns:ns0="http://schemas.xmlsoap.org/soap/envelope/" ' + 
+                            'xmlns:ns1="http://www.airservicesaustralia.com/naips/xsd" ' +
+                            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' +
+                            'xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">' +
+                            '<SOAP-ENV:Header/>' +
+                                '<ns0:Body>' +
+                                    '<ns1:loc-brief-rqs password="Password4" requestor="130SQN" source="atis">' +
+                                    '<ns1:loc>YPEA</ns1:loc>' +
+                                    '<ns1:loc>YPPH</ns1:loc>' +
+                                    '<ns1:loc>YGIG</ns1:loc>' +
+                                    '<ns1:loc>YGEL</ns1:loc>' +
+                                    '<ns1:flags met="true"/>' +
+                                '</ns1:loc-brief-rqs>' +
+                            '</ns0:Body>' +
+                        '</SOAP-ENV:Envelope>';
+                        
+        xmlhttp.onreadystatechange = function() {
+            if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+              xmlDoc = xmlhttp.responseXML
+              
+              let str = xmlDoc.getElementsByTagName("content")[0].childNodes[0].nodeValue;
+              const wxArr = str.split(/\n\n/).slice(3);
+              var div_Af, div_Afname, div_Allwx, div_wx
+              
+              let infotype = ['TAF', 'METAR', 'ATIS'];
+              let af = ['YPEA', 'YPPH', 'YGIG', 'YGEL'];
+              for (let i = 0; i < af.length; i++) {
+                //-------------Container to hold Af header and all report of AF
+                div_Af = document.createElement("div");
+                div_Af.className = "div_Af";
+                //----------Create AF header
+                div_Afname = document.createElement("div");
+                div_Afname.className = "div_Afname"
+                div_Afname.innerHTML = af[i]
+                div_Af.appendChild(div_Afname);
+                document.body.appendChild(div_Af);
+                //container to hold Taf, Metar and ATIS
+                div_Allwx = document.createElement("div");
+                div_Allwx.className = "div_Allwx"
+                for (let j = 0; j < infotype.length; j++) {
+                  for (let k = 0; k < wxArr.length; k++) {
+                        let str2 = infotype[j] + ' ' + af[i]
+                    if (wxArr[k].match(str2)) {
+                        
+                        //Title of Report
+                        div_wx_type = document.createElement("div");
+                        div_wx_type.className = "div_wx_type"
+                        div_wx_type.innerHTML = infotype[j]
+                        
+                        let str3 = wxArr[k].slice(wxArr[k].indexOf(str2) + str2.length, wxArr[k].length)
+                        //container to each report
+                        div_wx = document.createElement("div");
+                        div_wx.className = "div_wx"
+                        
+                      if (infotype[j].match('ATIS')) {
+                        let wxATIS = str3;
+                        let wxATISS = wxATIS.split(/\r?\n/)
+                        
+                        const index = wxATISS.indexOf('          ');
+                        if (index > -1) {
+                          wxATISS.splice(index, 1);
+                        }
+                        
+                        div_wx.innerHTML = wxATISS.join("<br>");
+                      } else if (infotype[j].match('TAF')) {
+                        
+                        let wxTAF = str3;
+                        let wxTAFF = wxTAF.split(" FM").join("<br>FM").split( "RMK").join("<br>RMK<br>").split("TAF3").join("<br>TAF3")
+                        div_wx.innerHTML = wxTAFF;
+                          
+                      } else {
+                        
+                        div_wx.innerHTML = str3;
+                          
+                      }
+                      
+                      div_Allwx.appendChild(div_wx_type);  
+                      div_Allwx.appendChild(div_wx);
+                      div_Af.appendChild(div_Allwx);
+                      document.body.appendChild(div_Af);
+                      
+                      }
+                    }
+                  }
+                }
+              }
+            };
+            xmlhttp.setRequestHeader('Content-Type', 'text/xml;charset="utf-8"');
+            xmlhttp.setRequestHeader('Accept', 'text/xml');
+            xmlhttp.setRequestHeader('Cache-Control', 'no-cache');
+            xmlhttp.setRequestHeader('Pragma', 'no-cache');
+            xmlhttp.setRequestHeader('SOAPAction', SOAP_URI);
+            xmlhttp.send(sr);
+      </script>
+  </body>
+</html>
